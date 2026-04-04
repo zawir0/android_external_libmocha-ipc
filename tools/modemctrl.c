@@ -54,7 +54,7 @@ int call_done = 0;
 char sim_pin[8];
 
 
-int32_t modem_read_loop(struct ipc_client *client)
+int32_t modem_read_loop(struct ipc_client *ipc_client)
 {
     struct modem_io resp;
     int32_t fd = client_fd;
@@ -78,14 +78,14 @@ int32_t modem_read_loop(struct ipc_client *client)
 
         if(FD_ISSET(fd, &fds))
         {
-            rc = ipc_client_recv(client, &resp);
+            rc = ipc_client_recv(ipc_client, &resp);
 
             if(rc != 0) {
                 DEBUG_E("Can't RECV from modem, please run this again\n");
                 break;
             }
 
-            ipc_dispatch(client, &resp);
+            ipc_dispatch(ipc_client, &resp);
 
             if(resp.data != NULL)
                 free(resp.data);
@@ -119,59 +119,23 @@ void modem_log_handler_quiet(const char *message, void *user_data)
     return;
 }
 
-int32_t modem_start(struct ipc_client *client)
-{
-    int32_t rc = -1;
-
-//    ipc_client_set_handlers(client, &ipc_default_handlers);
-    ipc_client_create_handlers_common_data(client);
-
-    ipc_client_bootstrap_modem(client);
-
-    usleep(300);
-
-    DEBUG_I("Opening modem_packet\n");
-
-    rc = ipc_client_open(client);
-
-    if(rc < 0)
-        return -1;
-
-    client_fd = ipc_client_get_handlers_common_data_fd(client);
-
-    //DEBUG_I("Power on modem\n");
-
-  //  rc = ipc_client_power_on(client);
-    if(rc < 0)
-        return -1;
-
-    return 0;
-}
-
-int32_t modem_stop(struct ipc_client *client)
-{
-    ipc_client_power_off(client);
-    ipc_client_close(client);
-
-    return 0;
-}
-
 void print_help()
 {
-    printf("usage: modemctrl <command>\n");
+    printf("usage: modemctrl [options] <command>\n");
     printf("commands:\n");
     printf("\tstart                 bootstrap modem and start read loop\n");
     printf("\tbootstrap             bootstrap modem only\n");
     printf("\tpower-on              power on the modem\n");
     printf("\tpower-off             power off the modem\n");
-    printf("arguments:\n");
-    printf("\t--debug               enable debug messages\n");
+    printf("options:\n");
+    printf("\t--debug               enable verbose debug messages\n");
+    printf("\t--device=jet|wave     force device type (default: auto-detect)\n");
     printf("\t--pin=[PIN]           provide SIM card PIN\n");
 }
 
 /* KB:
  * TODO: Implement in a separate thread which will be used as mainLoop in final vendor RIL implementation
- * 		 This will be called from RIL_Init function
+ *       This will be called from RIL_Init function
  */
 int main(int argc, char *argv[])
 {
@@ -179,11 +143,14 @@ int main(int argc, char *argv[])
     int opt_i = 0;
     int rc = -1;
     int debug = 0;
+    int forced_device = -1;
+    struct ipc_client *modem_client = NULL;
 
     struct option opt_l[] = {
         {"help",    no_argument,        0,  0 },
         {"debug",   no_argument,        0,  0 },
         {"pin",     required_argument,  0,  0 },
+        {"device",  required_argument,  0,  0 },
         {0,         0,                  0,  0 }
     };
 
@@ -215,63 +182,82 @@ int main(int argc, char *argv[])
                             return 1;
                         }
                     }
+                } else if(strcmp(opt_l[opt_i].name, "device") == 0) {
+                    if(optarg) {
+                        if(strcmp(optarg, "jet") == 0) {
+                            forced_device = IPC_DEVICE_JET;
+                            DEBUG_I("Forcing device type: jet\n");
+                        } else if(strcmp(optarg, "wave") == 0) {
+                            forced_device = IPC_DEVICE_WAVE;
+                            DEBUG_I("Forcing device type: wave\n");
+                        } else {
+                            DEBUG_E("Unknown device type '%s'; use 'jet' or 'wave'\n",
+                                    optarg);
+                            return 1;
+                        }
+                    }
                 }
             break;
         }
     }
 
     ipc_init();
-    client = ipc_client_new();
 
-    if (client == 0) {
+    if (forced_device >= 0)
+        modem_client = ipc_client_new_for_device(forced_device);
+    else
+        modem_client = ipc_client_new();
+
+    /* keep the radio.h global 'client' in sync for inline helpers (ipc_send etc.) */
+    client = modem_client;
+
+    if (modem_client == 0) {
         printf("[E] Could not create IPC client; aborting ...\n");
         goto modem_quit;
     }
 
     if (debug == 0)
-        ipc_client_set_log_handler(client, modem_log_handler_quiet, NULL);
-    else ipc_client_set_log_handler(client, modem_log_handler, NULL);
+        ipc_client_set_log_handler(modem_client, modem_log_handler_quiet, NULL);
+    else
+        ipc_client_set_log_handler(modem_client, modem_log_handler, NULL);
 
-    while(opt_i < argc) {
+    while(optind < argc) {
         if(strncmp(argv[optind], "power-on", 8) == 0) {
-            if (ipc_client_power_on(client) < 0)
+            if (ipc_client_power_on(modem_client) < 0)
                 printf("[E] Something went wrong while powering modem on\n");
             goto modem_quit;
         } else if(strncmp(argv[optind], "power-off", 9) == 0) {
-            if (ipc_client_power_off(client) < 0)
+            if (ipc_client_power_off(modem_client) < 0)
                 printf("[E] Something went wrong while powering modem off\n");
             goto modem_quit;
         } else if (strncmp(argv[optind], "bootstrap", 9) == 0) {
-            ipc_client_create_handlers_common_data(client);
-            ipc_client_bootstrap_modem(client);
+            ipc_client_create_handlers_common_data(modem_client);
+            ipc_client_bootstrap_modem(modem_client);
         } else if(strncmp(argv[optind], "start", 5) == 0) {
             printf("[0] Starting modem on IPC client\n");
-            rc = ipc_client_open(client);
-			if(rc < 0) {
-                printf("[E] Something went wrong\n");
-                return 1;
-            }
-			client_fd = ipc_client_get_handlers_common_data_fd(client);
+            ipc_client_create_handlers_common_data(modem_client);
+            ipc_client_bootstrap_modem(modem_client);
+            usleep(300);
+            rc = ipc_client_open(modem_client);
             if(rc < 0) {
-                printf("[E] Something went wrong\n");
+                printf("[E] Something went wrong opening modem device\n");
                 return 1;
             }
-			DEBUG_I("Starting modem_read_loop on IPC client\n");
-			
-			modem_read_loop(client);
-
-            } else {
-                DEBUG_E("Unknown argument: '%s'\n", argv[optind]);
-                print_help();
-                return 1;
-            }
-
-            optind++;
+            client_fd = ipc_client_get_handlers_common_data_fd(modem_client);
+            DEBUG_I("Starting modem_read_loop on IPC client\n");
+            modem_read_loop(modem_client);
+        } else {
+            DEBUG_E("Unknown argument: '%s'\n", argv[optind]);
+            print_help();
+            return 1;
         }
 
+        optind++;
+    }
+
 modem_quit:
-    if (client != 0)
-        ipc_client_free(client);
+    if (modem_client != 0)
+        ipc_client_free(modem_client);
     ipc_shutdown();
 
     return 0;

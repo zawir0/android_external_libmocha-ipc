@@ -19,31 +19,39 @@
  * along with libmocha-ipc.  If not, see <http://www.gnu.org/licenses/>.
  *
  */
- 
+
 #ifndef _JET_IPC_H_
 #define _JET_IPC_H_
 
 #include <radio.h>
+#include <device/jet/jet_modem_ctl.h>
 
-#define DPRAM_TTY			"/dev/dpram0"
+/*
+ * Jet modem control device path.  The modemctl driver exposes a single
+ * character device that handles both control IOCTLs (ON/OFF/RESET/
+ * AMSSRUNREQ/PMIC) and IPC packet IOCTLs (SEND/RECV).
+ *
+ * Override at build time by passing -DJET_MODEMCTL_PATH=\"/dev/yourpath\"
+ * to the compiler.
+ */
+#ifndef JET_MODEMCTL_PATH
+#define JET_MODEMCTL_PATH		"/dev/modemctl"
+#endif
 
-#define IOCTL_PHONE_ON			0x68d0
-#define IOCTL_PHONE_OFF			0x68d1
-#define IOCTL_PHONE_GETSTATUS		0x68d2
-#define IOCTL_PHONE_RESET		0x68d3
-#define IOCTL_PHONE_RAMDUMP		0x68d4
-#define IOCTL_PHONE_BOOTTYPE		0x68d5
-#define IOCTL_MEM_RW			0x68d6
-#define IOCTL_WAKEUP			0x68d7
-#define IOCTL_SILENT_RESET		0x68d8
-
+/*
+ * Device node used for IPC packet exchange (IOCTL_MODEM_SEND/RECV).
+ * On Jet this is the same node as the control device.
+ * Override with -DJET_MODEMPACKET_PATH=\"/dev/yourpath\" if needed.
+ */
+#ifndef JET_MODEMPACKET_PATH
+#define JET_MODEMPACKET_PATH		JET_MODEMCTL_PATH
+#endif
 
 struct multiPacketHeader {
 	uint32_t command;
 	uint32_t packtLen;
 	uint32_t packetType;
 };
-
 
 #endif
 
