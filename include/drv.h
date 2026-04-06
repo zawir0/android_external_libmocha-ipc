@@ -25,6 +25,7 @@
 
 #if defined(DEVICE_JET)
 #include "device/jet/drv.h"
+#include "device/jet/jet_modem_ctl.h"
 #elif defined(DEVICE_WAVE)
 #include "device/wave/drv.h"
 #endif

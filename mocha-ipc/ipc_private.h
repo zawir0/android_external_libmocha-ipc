@@ -68,7 +68,7 @@ struct ipc_client {
 
 struct ipc_device_desc {
     struct ipc_ops *client_ops;
-    struct ips_handlers *handlers;
+    struct ipc_handlers *handlers;
 };
 
 void ipc_client_log(struct ipc_client *client, const char *message, ...);

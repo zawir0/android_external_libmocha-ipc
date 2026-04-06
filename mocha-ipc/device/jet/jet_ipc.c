@@ -192,9 +192,9 @@ int32_t jet_ipc_send(struct ipc_client *client, struct modem_io *ipc_frame)
 		multiHeader->packetType = ipc_frame->cmd;
 
 		multi_packet.data = (uint8_t *)multiHeader;
-		free(multiHeader);
 
 		send_packet(client, &multi_packet);
+		free(multiHeader);
 
 		left_data = ipc_frame->datasize;
 
@@ -256,8 +256,10 @@ int32_t jet_ipc_recv(struct ipc_client *client, struct modem_io *ipc_frame)
             ipc_frame->data = (uint8_t*)malloc(left);
             memcpy(ipc_frame->data, data , ipc_frame->datasize);
 
+            free(data);
             return 0;
         }
+        free(data);
     }
 
     return 0;
@@ -341,7 +343,7 @@ int jet_ipc_common_data_set_fd(void *io_data, int fd)
         return -1;
 
     common_data = (int *) io_data;
-    common_data = &fd;
+    *common_data = fd;
 
     return 0;
 }

@@ -136,7 +136,7 @@ struct ipc_client* ipc_client_new()
     while (pch != NULL)
     {
         int rc;
-        if ((rc = strncmp(pch, "Hardware", 9)) == 9)
+        if (strncmp(pch, "Hardware", 8) == 0)
         {
             if (strstr(pch, "GT-S8000") != NULL)
                 device_type = IPC_DEVICE_JET;
@@ -157,7 +157,7 @@ struct ipc_client* ipc_client_new_for_device(int device_type)
 {
     struct ipc_client *client;
 
-    if (device_type < 0 || device_type > IPC_DEVICE_LAST)
+    if (device_type < 0 || device_type >= IPC_DEVICE_LAST)
         return 0;
 
     client = (struct ipc_client*) malloc(sizeof(struct ipc_client));
@@ -366,7 +366,6 @@ int32_t ipc_client_close(struct ipc_client *client)
 
 int32_t ipc_client_power_on(struct ipc_client *client)
 {
-	return 0; //for jet
     if (client == NULL ||
         client->handlers == NULL ||
         client->handlers->power_on == NULL)
@@ -377,7 +376,6 @@ int32_t ipc_client_power_on(struct ipc_client *client)
 
 int32_t ipc_client_power_off(struct ipc_client *client)
 {
-	return 0; //for jet
 	if (client == NULL ||
         client->handlers == NULL ||
         client->handlers->power_off == NULL)
