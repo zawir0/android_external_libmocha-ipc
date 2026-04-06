@@ -24,6 +24,7 @@
 #define _JET_IPC_H_
 
 #include <radio.h>
+#include <device/jet/jet_modem_ctl.h>
 
 #define DPRAM_TTY			"/dev/dpram0"
 
