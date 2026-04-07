@@ -28,6 +28,7 @@
 #include <assert.h>
 #include <stdint.h>
 #include <stdarg.h>
+#include <errno.h>
 #include <unistd.h>
 #include <stdbool.h>
 #include <termios.h>
@@ -123,32 +124,55 @@ void ipc_client_log(struct ipc_client *client, const char *message, ...)
 
 struct ipc_client* ipc_client_new()
 {
-    int device_type = -1, in_hardware = 0;
+    int device_type = -1;
     char buf[4096];
+    /* Sized to hold any realistic cpuinfo Hardware line (e.g. "Hardware\t: GT-S8000E"). */
+#define CPUINFO_HW_LINE_MAX 256
+    char hw_line[CPUINFO_HW_LINE_MAX] = {0};
+    int bytesread;
 
     // gather device type from /proc/cpuinfo
     int fd = open("/proc/cpuinfo", O_RDONLY);
-    int bytesread = read(fd, buf, 4096);
+    if (fd < 0) {
+        fprintf(stderr, "[E] ipc_client_new: failed to open /proc/cpuinfo (errno=%d)\n", errno);
+        return NULL;
+    }
+    bytesread = read(fd, buf, sizeof(buf) - 1);
     close(fd);
+
+    if (bytesread <= 0) {
+        fprintf(stderr, "[E] ipc_client_new: failed to read /proc/cpuinfo (errno=%d)\n", errno);
+        return NULL;
+    }
+    buf[bytesread] = '\0';
 
     // match hardware name with our supported devices
     char *pch = strtok(buf, "\n");
     while (pch != NULL)
     {
-        int rc;
         if (strncmp(pch, "Hardware", 8) == 0)
         {
-            if (strstr(pch, "GT-S8000") != NULL)
+            strncpy(hw_line, pch, sizeof(hw_line) - 1);
+            fprintf(stderr, "[D] ipc_client_new: found cpuinfo line: %s\n", pch);
+            /* strstr("GT-S8000") matches GT-S8000, GT-S8000E, GT-S8000B, etc.
+             * Some CM kernels omit "GT-" and use just "Jet" or "jet". */
+            if (strstr(pch, "GT-S8000") != NULL ||
+                strstr(pch, "Jet") != NULL || strstr(pch, "jet") != NULL)
                 device_type = IPC_DEVICE_JET;
-            else if (strstr(pch, "wave") != NULL)
+            else if (strstr(pch, "wave") != NULL || strstr(pch, "Wave") != NULL)
                 device_type = IPC_DEVICE_WAVE;
         }
         pch = strtok(NULL, "\n");
     }
 
     // validate that we have found any supported device
-    if (device_type == -1)
+    if (device_type == -1) {
+        if (hw_line[0] != '\0')
+            fprintf(stderr, "[E] ipc_client_new: unsupported hardware: '%s'\n", hw_line);
+        else
+            fprintf(stderr, "[E] ipc_client_new: no Hardware line found in /proc/cpuinfo\n");
         return NULL;
+    }
 
     return ipc_client_new_for_device(device_type);
 }

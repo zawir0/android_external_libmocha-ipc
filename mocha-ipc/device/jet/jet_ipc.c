@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 
 #include <radio.h>
 
@@ -37,41 +39,50 @@
 
 int32_t jet_modem_bootstrap(struct ipc_client *client)
 {
-
 	int32_t rc = 0;
+	int32_t dpram_fd = -1;
 
-    int32_t dpram_fd = -1;
+	DEBUG_I("jet_ipc_bootstrap: enter\n");
+	DEBUG_I("jet_ipc_bootstrap: open modem_ctl\n");
 
-	int32_t fd, retval;
+	/* modem_ctl is the only supported control path on CM9/Jet kernels.
+	 * DPRAM_TTY is a data device and is not a valid fallback for control
+	 * ioctls such as IOCTL_MODEM_AMSSRUNREQ. */
+	dpram_fd = open(MODEMCTL_PATH, O_RDWR | O_NDELAY);
+	if (dpram_fd < 0) {
+		fprintf(stderr, "[E] jet_ipc_bootstrap: failed to open %s (errno=%d: %s)\n",
+			MODEMCTL_PATH, errno, strerror(errno));
+		return -1;
+	}
 
-    DEBUG_I("jet_ipc_bootstrap: enter\n");
+	/* Query and log modem status before issuing AMSSRUNREQ.
+	 * The kernel driver requires mc->status == MODEM_POWER_ON (3) at this
+	 * point.  If the value is anything else (e.g. 0=OFF) the ioctl will
+	 * return -EINVAL and the log line below will show why. */
+	{
+		int32_t modem_status = -1;
+		if (ioctl(dpram_fd, IOCTL_MODEM_GET_STATUS, &modem_status) == 0)
+			DEBUG_I("jet_ipc_bootstrap: modem status = %d (expected 3 = MODEM_POWER_ON)\n",
+				modem_status);
+		else
+			DEBUG_I("jet_ipc_bootstrap: IOCTL_MODEM_GET_STATUS failed (errno=%d: %s)\n",
+				errno, strerror(errno));
+	}
 
-    DEBUG_I("jet_ipc_bootstrap: open modem_ctl\n");
+	DEBUG_I("jet_ipc_bootstrap: send amss_run_request\n");
 
-    /* Try the modem_ctl transport first; fall back to the legacy DPRAM TTY
-     * for older kernels that do not have the modem_ctl driver. */
-    dpram_fd = open(MODEMCTL_PATH, O_RDWR | O_NDELAY);
-    if (dpram_fd < 0) {
-        DEBUG_I("jet_ipc_bootstrap: MODEMCTL_PATH not available, trying DPRAM_TTY\n");
-        dpram_fd = open(DPRAM_TTY, O_RDWR | O_NDELAY);
-    }
+	rc = ioctl(dpram_fd, IOCTL_MODEM_AMSSRUNREQ);
+	if (rc < 0)
+		fprintf(stderr, "[E] jet_ipc_bootstrap: IOCTL_MODEM_AMSSRUNREQ failed (errno=%d: %s)\n",
+			errno, strerror(errno));
 
-    if(dpram_fd < 0) {
-    	DEBUG_I("jet_ipc_bootstrap: failed to open modem control device\n");
-    	return 1;
-    }
+	DEBUG_I("jet_ipc_bootstrap: closing modem control device\n");
 
-    DEBUG_I("jet_ipc_bootstrap: send amss_run_request\n");
+	close(dpram_fd);
 
-    ioctl(dpram_fd, IOCTL_MODEM_AMSSRUNREQ);
+	DEBUG_I("jet_ipc_bootstrap: exit\n");
 
-    DEBUG_I("jet_ipc_bootstrap: closing modem control device\n");
-
-    close(dpram_fd);
-
-    DEBUG_I("jet_ipc_bootstrap: exit\n");
-
-    return 0;
+	return rc;
 }
 
 int32_t jet_ipc_open(void *data, uint32_t size, void *io_data)
@@ -126,30 +137,47 @@ int32_t jet_ipc_close(void *data, uint32_t size, void *io_data)
 
 int32_t jet_ipc_power_on(void *data)
 {
-    int32_t fd = -1;
+	int32_t fd;
+	int32_t rc;
 
-    if(data == NULL)
-        return -1;
+	/* Power-on is a modem_ctl operation and must be done via MODEMCTL_PATH.
+	 * It is independent of the modem_packet data channel (io_data), so we
+	 * open and close modem_ctl ourselves rather than relying on a pre-set fd. */
+	fd = open(MODEMCTL_PATH, O_RDWR | O_NDELAY);
+	if (fd < 0) {
+		fprintf(stderr, "[E] jet_ipc_power_on: failed to open %s (errno=%d: %s)\n",
+			MODEMCTL_PATH, errno, strerror(errno));
+		return -1;
+	}
 
-    fd = *((int32_t *) data);
+	rc = ioctl(fd, IOCTL_MODEM_ON);
+	if (rc < 0)
+		fprintf(stderr, "[E] jet_ipc_power_on: IOCTL_MODEM_ON failed (errno=%d: %s)\n",
+			errno, strerror(errno));
 
-    ioctl(fd, IOCTL_PHONE_ON);
-
-    return 0;
+	close(fd);
+	return rc;
 }
 
 int32_t jet_ipc_power_off(void *data)
 {
-    int32_t fd = -1;
+	int32_t fd;
+	int32_t rc;
 
-    if(data == NULL)
-        return -1;
+	fd = open(MODEMCTL_PATH, O_RDWR | O_NDELAY);
+	if (fd < 0) {
+		fprintf(stderr, "[E] jet_ipc_power_off: failed to open %s (errno=%d: %s)\n",
+			MODEMCTL_PATH, errno, strerror(errno));
+		return -1;
+	}
 
-    fd = *((int32_t *) data);
+	rc = ioctl(fd, IOCTL_MODEM_OFF);
+	if (rc < 0)
+		fprintf(stderr, "[E] jet_ipc_power_off: IOCTL_MODEM_OFF failed (errno=%d: %s)\n",
+			errno, strerror(errno));
 
-    ioctl(fd, IOCTL_PHONE_OFF);
-
-    return 0;
+	close(fd);
+	return rc;
 }
 
 int32_t send_packet(struct ipc_client *client, struct modem_io *ipc_frame)
