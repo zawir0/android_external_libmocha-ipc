@@ -29,23 +29,6 @@
 #include "types.h"
 #include "util.h"
 
-/* Compatibility logging macros for older CM9 trees */
-#ifndef ALOGE
-#define ALOGE(...) fprintf(stderr, "E/libmocha-ipc: " __VA_ARGS__), fprintf(stderr, "\n")
-#endif
-#ifndef ALOGW
-#define ALOGW(...) fprintf(stderr, "W/libmocha-ipc: " __VA_ARGS__), fprintf(stderr, "\n")
-#endif
-#ifndef ALOGI
-#define ALOGI(...) fprintf(stderr, "I/libmocha-ipc: " __VA_ARGS__), fprintf(stderr, "\n")
-#endif
-#ifndef ALOGD
-#define ALOGD(...) fprintf(stderr, "D/libmocha-ipc: " __VA_ARGS__), fprintf(stderr, "\n")
-#endif
-#ifndef ALOGV
-#define ALOGV(...) fprintf(stderr, "V/libmocha-ipc: " __VA_ARGS__), fprintf(stderr, "\n")
-#endif
-
 enum ipc_device_enum
 {
 	IPC_DEVICE_JET = 0,

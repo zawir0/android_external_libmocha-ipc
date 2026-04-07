@@ -42,8 +42,4 @@ enum IpcPacketType {
 	BATT_GAUGE_STATUS_CHANGE_IND	= 0x62,
 };
 
-#ifndef BATT_GAUGE_STATUS_REQ
-#define BATT_GAUGE_STATUS_REQ 0x55
-#endif
-
 #endif

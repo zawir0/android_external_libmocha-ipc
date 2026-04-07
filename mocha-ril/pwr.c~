@@ -34,15 +34,6 @@
 #include "mocha-ril.h"
 #include "util.h"
 
-#ifndef RADIO_STATE_ON
-#ifdef RADIO_STATE_SIM_READY
-#define RADIO_STATE_ON RADIO_STATE_SIM_READY
-#else
-/* Fallback for older/odd RIL headers */
-#define RADIO_STATE_ON 1
-#endif
-#endif
-
 void ipc_cp_system_start(void* data)
 {
 	struct modem_io *ipc_frame = (struct modem_io*) data; 

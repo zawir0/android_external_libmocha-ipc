@@ -20,26 +20,28 @@
  *
  */
 
-#ifndef __BT_PACKET_H__
-#define __BT_PACKET_H__
+#ifndef __DEVICE_JET_BT_H__
+#define __DEVICE_JET_BT_H__
 
-#include <radio.h>
+/**
+ * All the TAPI Network context structures specific to Wave will be defined here
+ */
 
-#ifdef DEVICE_JET
-#include <device/jet/bt.h>
-#elif defined(DEVICE_WAVE)
-#include <device/wave/bt.h>
-#else
-#error "No device selected"
-#endif
-
-typedef struct 
+enum BT_PACKET_TYPE
 {
-	uint16_t type;
-	uint16_t length;
-} __attribute__((__packed__)) btPacketHeader;
+	BT_PACKET_API_RESULT 			= 0,
+	BT_PACKET_INIT 				= 1,
+	BT_PACKET_AG_EXTENDED_AT_RSP 		= 4,
+	BT_PACKET_SAP_SIM_OPEN_RSP 		= 0x18, /* Seems unused */
+	BT_PACKET_SAP_SEND_APDU_RSP 		= 0x1C,
+	BT_PACKET_SAP_SIM_POWER_ON_RSP 		= 0x20,
+	BT_PACKET_SAP_SIM_POWER_OFF_RSP 	= 0x22,
+	BT_PACKET_SAP_GET_ATR_RSP 		= 0x1E,
+	BT_PACKET_SAP_SIM_RESET_RSP 		= 0x24,
+	BT_PACKET_SAP_SIM_CARD_READER_STATUS 	= 0x25,
+	BT_PACKET_SAP_SIM_CARD_STATUS 		= 0x26,
+	BT_PACKET_BT_ADDR_INFO 			= 0x29,
+};
 
-void ipc_parse_bt(struct ipc_client* client, struct modem_io *ipc_frame);
-void bt_addr_info(uint8_t *data);
 
 #endif

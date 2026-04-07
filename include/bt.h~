@@ -25,12 +25,8 @@
 
 #include <radio.h>
 
-#ifdef DEVICE_JET
-#include <device/jet/bt.h>
-#elif defined(DEVICE_WAVE)
-#include <device/wave/bt.h>
-#else
-#error "No device selected"
+#if defined(DEVICE_WAVE)
+#include "device/wave/bt.h"
 #endif
 
 typedef struct 
