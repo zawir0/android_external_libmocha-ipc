@@ -50,4 +50,7 @@ struct FmFileAttribute
 									*/
 };
 
+/* Provide a typedef so shared sources can use FmFileAttribute directly */
+typedef struct FmFileAttribute FmFileAttribute;
+
 #endif

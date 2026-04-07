@@ -34,6 +34,7 @@
 
 #include <radio.h>
 #include <tm.h>
+#include <errno.h>
 
 #define LOG_TAG "RIL-Mocha-TM"
 #include <utils/Log.h>
