@@ -167,6 +167,7 @@ void print_help()
     printf("arguments:\n");
     printf("\t--debug               enable debug messages\n");
     printf("\t--pin=[PIN]           provide SIM card PIN\n");
+    printf("\t--device=jet|wave     override hardware auto-detection\n");
 }
 
 /* KB:
@@ -179,11 +180,13 @@ int main(int argc, char *argv[])
     int opt_i = 0;
     int rc = -1;
     int debug = 0;
+    int device_override = -1;
 
     struct option opt_l[] = {
         {"help",    no_argument,        0,  0 },
         {"debug",   no_argument,        0,  0 },
         {"pin",     required_argument,  0,  0 },
+        {"device",  required_argument,  0,  0 },
         {0,         0,                  0,  0 }
     };
 
@@ -215,13 +218,29 @@ int main(int argc, char *argv[])
                             return 1;
                         }
                     }
+                } else if(strcmp(opt_l[opt_i].name, "device") == 0) {
+                    if(optarg) {
+                        if(strcmp(optarg, "jet") == 0) {
+                            device_override = IPC_DEVICE_JET;
+                            DEBUG_I("Device override: jet\n");
+                        } else if(strcmp(optarg, "wave") == 0) {
+                            device_override = IPC_DEVICE_WAVE;
+                            DEBUG_I("Device override: wave\n");
+                        } else {
+                            printf("[E] Unknown device '%s'; valid values: jet, wave\n", optarg);
+                            return 1;
+                        }
+                    }
                 }
             break;
         }
     }
 
     ipc_init();
-    client = ipc_client_new();
+    if (device_override >= 0)
+        client = ipc_client_new_for_device(device_override);
+    else
+        client = ipc_client_new();
 
     if (client == 0) {
         printf("[E] Could not create IPC client; aborting ...\n");
