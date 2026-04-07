@@ -48,7 +48,7 @@
 #ifdef DEVICE_JET
 #include <device/jet/sound_data.h>
 char *nvm_file_path = "/efs/bml4";
-char *power_dev_path = "/sys/devices/platform/i2c-gpio.6/i2c-6/6-0066/max8998-charger/power_supply/"; 
+char *power_dev_path = "/sys/class/power_supply/";
 char *fake_apps_version = "S800MPOJB1";
 #elif defined(DEVICE_WAVE)
 #include <device/wave/sound_data.h>
@@ -191,7 +191,7 @@ void *battery_thread(void *data)
 	if (fd_cap < 0)
 		DEBUG_E("Couldn't open %s, %s", buf, strerror(errno));
 
-	ALOGD("%s: Battery thread initialized", __func__);
+	DEBUG_I("%s: Battery thread initialized", __func__);
 
 	while(1)
 	{

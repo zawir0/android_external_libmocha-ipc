@@ -48,10 +48,16 @@ int32_t jet_modem_bootstrap(struct ipc_client *client)
 
     DEBUG_I("jet_ipc_bootstrap: open modem_ctl\n");
 
-    dpram_fd = open(DPRAM_TTY, O_RDWR | O_NDELAY);
+    /* Try the modem_ctl transport first; fall back to the legacy DPRAM TTY
+     * for older kernels that do not have the modem_ctl driver. */
+    dpram_fd = open(MODEMCTL_PATH, O_RDWR | O_NDELAY);
+    if (dpram_fd < 0) {
+        DEBUG_I("jet_ipc_bootstrap: MODEMCTL_PATH not available, trying DPRAM_TTY\n");
+        dpram_fd = open(DPRAM_TTY, O_RDWR | O_NDELAY);
+    }
 
     if(dpram_fd < 0) {
-    	DEBUG_I("jet_ipc_bootstrap: failed to open dev/dpram0\n");
+    	DEBUG_I("jet_ipc_bootstrap: failed to open modem control device\n");
     	return 1;
     }
 
@@ -59,7 +65,7 @@ int32_t jet_modem_bootstrap(struct ipc_client *client)
 
     ioctl(dpram_fd, IOCTL_MODEM_AMSSRUNREQ);
 
-    DEBUG_I("jet_ipc_bootstrap: closing dev/modem_ctl\n");
+    DEBUG_I("jet_ipc_bootstrap: closing modem control device\n");
 
     close(dpram_fd);
 
@@ -79,7 +85,13 @@ int32_t jet_ipc_open(void *data, uint32_t size, void *io_data)
 
     fd = *((int32_t *) io_data);
 
-    fd = open(DPRAM_TTY, O_RDWR);
+    /* Try the modem_packet transport first; fall back to the legacy DPRAM TTY
+     * for older kernels that do not have the modem_packet driver. */
+    fd = open(MODEMPACKET_PATH, O_RDWR);
+    if (fd < 0) {
+        DEBUG_I("jet_ipc_open: MODEMPACKET_PATH not available, trying DPRAM_TTY\n");
+        fd = open(DPRAM_TTY, O_RDWR);
+    }
 
     DEBUG_I("dpram fd = 0x%x\n", fd);
 

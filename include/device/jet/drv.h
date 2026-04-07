@@ -28,10 +28,18 @@ enum IpcPacketType {
 	WRITE_NV_BACKUP 	= 0x2,
 	NV_BACKUP_DATA 		= 0x3,
 	SYSTEM_INFO_REQ 	= 0x17,
+	/* Jet uses 0x1A for TA_CHANGE_AP (same wire value as Wave TA_CHANGE_CP/TA_CHANGE_AP) */
+	TA_CHANGE_AP		= 0x1A,
 	SOUND_CONFIG 		= 0x1B,
 	PMIC_PACKET 		= 0x1C,
 	HIDDEN_SW_VER 		= 0x39,
-	
+	/* Battery gauge status – request and response share the same opcode */
+	BATT_GAUGE_STATUS_RESP		= 0x55,
+	/* USB/TA cable status – request and response share the same opcode */
+	TA_INFO_REQ		= 0x58,
+	TA_INFO_RESP		= 0x58,
+	/* Battery gauge level change notification */
+	BATT_GAUGE_STATUS_CHANGE_IND	= 0x62,
 };
 
 #endif

@@ -24,14 +24,25 @@
 #define __DEVICE_JET_NETTEXT_H__
 
 /**
- * All the TAPI Nettext (sms) context structures specific to Jet will be defined here
+ * All the TAPI Nettext (sms) context structures specific to Jet will be defined here.
+ *
+ * The enum below merges the original Jet-specific names with the Wave-style
+ * names used by the shared mocha-ipc/tapi_nettext.c source.  Where a Jet name
+ * already existed it is kept as an alias alongside the Wave-style name.
  */
 enum TAPI_NETTEXT_TYPE
 {
-	TAPI_NETTEXT_SETMEMAVAIL 		= 0x3A, //uint8_t bMemAvail = bool probably
-	TAPI_NETTEXT_SETPREFERREDMEM 	= 0x3B, //uint8_t memType = sim/phone probably, stored in TapiSmsConfig.ini as variable called "DEF_STORAGE"
-	TAPI_NETTEXT_SETNETBURST		= 0x3D, //uint32_t bEnable = 0/1, depending on NvInt id=469 and on some SmsSvc state
-	TAPI_NETTEXT_SETCBSETTING 		= 0x3E, //size of buf is 0x64
+	TAPI_NETTEXT_SEND			= 0x37,
+	TAPI_NETTEXT_SET_MEM_AVAIL		= 0x3A,
+	TAPI_NETTEXT_SETMEMAVAIL		= 0x3A, /* Jet original name */
+	TAPI_NETTEXT_SET_PREFERRED_MEM		= 0x3B,
+	TAPI_NETTEXT_SETPREFERREDMEM		= 0x3B, /* Jet original name */
+	TAPI_NETTEXT_SET_BURST			= 0x3D,
+	TAPI_NETTEXT_SETNETBURST		= 0x3D, /* Jet original name */
+	TAPI_NETTEXT_SET_CB_SETTING		= 0x3E,
+	TAPI_NETTEXT_SETCBSETTING		= 0x3E, /* Jet original name */
+	TAPI_NETTEXT_SEND_CALLBACK		= 0x40,
+	TAPI_NETTEXT_INCOMING			= 0x42,
 };
 
 #endif

@@ -28,6 +28,14 @@
 
 #define DPRAM_TTY			"/dev/dpram0"
 
+/* Modem control device used for bootstrap (modem_ctl driver, kernel >= 3.x).
+ * Falls back to DPRAM_TTY on older kernels. */
+#define MODEMCTL_PATH			"/dev/modem_ctl"
+
+/* Modem packet device used for IPC data transfer (modem_packet driver).
+ * Falls back to DPRAM_TTY on older kernels. */
+#define MODEMPACKET_PATH		"/dev/modem_packet"
+
 #define IOCTL_PHONE_ON			0x68d0
 #define IOCTL_PHONE_OFF			0x68d1
 #define IOCTL_PHONE_GETSTATUS		0x68d2
