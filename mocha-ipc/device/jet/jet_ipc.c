@@ -55,6 +55,20 @@ int32_t jet_modem_bootstrap(struct ipc_client *client)
 		return -1;
 	}
 
+	/* Query and log modem status before issuing AMSSRUNREQ.
+	 * The kernel driver requires mc->status == MODEM_POWER_ON (3) at this
+	 * point.  If the value is anything else (e.g. 0=OFF) the ioctl will
+	 * return -EINVAL and the log line below will show why. */
+	{
+		int32_t modem_status = -1;
+		if (ioctl(dpram_fd, IOCTL_MODEM_GET_STATUS, &modem_status) == 0)
+			DEBUG_I("jet_ipc_bootstrap: modem status = %d (expected 3 = MODEM_POWER_ON)\n",
+				modem_status);
+		else
+			DEBUG_I("jet_ipc_bootstrap: IOCTL_MODEM_GET_STATUS failed (errno=%d: %s)\n",
+				errno, strerror(errno));
+	}
+
 	DEBUG_I("jet_ipc_bootstrap: send amss_run_request\n");
 
 	rc = ioctl(dpram_fd, IOCTL_MODEM_AMSSRUNREQ);
