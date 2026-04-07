@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
         ipc_client_set_log_handler(client, modem_log_handler_quiet, NULL);
     else ipc_client_set_log_handler(client, modem_log_handler, NULL);
 
-    while(opt_i < argc) {
+    while(optind < argc) {
         if(strncmp(argv[optind], "power-on", 8) == 0) {
             if (ipc_client_power_on(client) < 0)
                 printf("[E] Something went wrong while powering modem on\n");
@@ -265,6 +265,7 @@ int main(int argc, char *argv[])
             ipc_client_bootstrap_modem(client);
         } else if(strncmp(argv[optind], "start", 5) == 0) {
             printf("[0] Starting modem on IPC client\n");
+            ipc_client_create_handlers_common_data(client);
             rc = ipc_client_open(client);
 			if(rc < 0) {
                 printf("[E] Something went wrong\n");
